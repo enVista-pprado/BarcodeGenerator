@@ -182,6 +182,7 @@ def generate_pdf_from_csv(csv_path: str, output_path: str = "output.pdf", column
 # ===================================================================
 # RUN SCRIPT
 # ===================================================================
-
+"""
 if __name__ == "__main__":
     generate_pdf_from_csv("input.csv")
+"""
