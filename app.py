@@ -3,39 +3,58 @@ import tempfile
 from barcode_generator import generate_pdf_from_csv
 import os
 
+# -----------------------------
+# STREAMLIT PAGE SETUP
+# -----------------------------
 st.set_page_config(page_title="Barcode PDF Generator", layout="centered")
 
 st.title("📦 Barcode Label PDF Generator")
-st.write("Upload a CSV file and download the generated barcode PDF.")
+st.write("Upload a CSV file and download a PDF with professionally formatted barcodes.")
 
-# File uploader
-uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
 
+# -----------------------------
+# FILE UPLOADER
+# -----------------------------
+uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
+
+# Only run when a file is uploaded
 if uploaded_file:
-    st.success("CSV uploaded!")
 
-    # Create a temporary file
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
-        tmp.write(uploaded_file.read())
-        csv_path = tmp.name
+    st.success("CSV uploaded successfully!")
 
-    # Generate PDF output path
-    output_pdf_path = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf").name
+    # Store CSV temporarily on disk
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp_csv:
+        tmp_csv.write(uploaded_file.read())
+        csv_path = tmp_csv.name
 
-    if st.button("Generate PDF"):
-        with st.spinner("Generating barcodes..."):
-            generate_pdf_from_csv(csv_path, output_pdf_path)
+    # Prepare temporary PDF output file
+    tmp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    output_pdf_path = tmp_pdf.name
+    tmp_pdf.close()  # Close file so reportlab can write to it
 
-        st.success("PDF created successfully! 🎉")
+    generate_btn = st.button("Generate PDF")
 
-        # Provide a download button
-        with open(output_pdf_path, "rb") as f:
-            st.download_button(
-                label="⬇ Download PDF",
-                data=f,
-                file_name="barcodes.pdf",
-                mime="application/pdf"
-            )
+    if generate_btn:
+        with st.spinner("Processing barcodes..."):
+            try:
+                generate_pdf_from_csv(csv_path, output_pdf_path)
+            except Exception as e:
+                st.error(f"❌ Error generating PDF: {e}")
+            else:
+                st.success("PDF created successfully! 🎉")
 
-        # Cleanup temporary files
-        os.unlink(csv_path)
+                # Download button
+                with open(output_pdf_path, "rb") as pdf_file:
+                    st.download_button(
+                        label="⬇ Download PDF",
+                        data=pdf_file.read(),
+                        file_name="barcodes.pdf",
+                        mime="application/pdf",
+                    )
+
+        # Cleanup temp CSV (PDF is kept for download)
+        try:
+            os.unlink(csv_path)
+        except:
+            pass
+
